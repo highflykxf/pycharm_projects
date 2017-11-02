@@ -1,0 +1,67 @@
+# -*- coding:utf-8 -*-
+import sys
+import getopt
+import networkx as nx
+import numpy
+
+
+def list_current_data_files(path_this):
+    from os import listdir
+    from os.path import isfile, join
+    onlyfiles = [join(path_this, f) for f in listdir(path_this) if isfile(join(path_this, f))]
+    return onlyfiles
+
+if __name__ == "__main__":
+    # event_rtt_file_path = "E:\\workspace\\eclipse_workspace\\event_tendency_predict\\datasets\\event_rtt_net"
+    options, args = getopt.getopt(sys.argv[1:], "", ["event_id=", "event_rtt_net_prefix=", "st_time=", "ed_time="])
+    if options != []:
+        for name, value in options:
+            if name == '--event_id':
+                EVENT_ID = value
+            if name == '--event_rtt_net_prefix':
+                EVENT_RTT_NET_PREFIX = value
+            if name == '--st_time':
+                ST_TIME = value
+            if name == '--ed_time':
+                ED_TIME = value
+    event_rtt_file_path = EVENT_RTT_NET_PREFIX
+
+    # e_id = 1
+    # print EVENT_ID,ST_TIME,ED_TIME
+    for event_rtt_file in list_current_data_files(event_rtt_file_path):
+        if event_rtt_file.split('\\')[-1].__eq__(str(EVENT_ID)+".txt") is not True:
+            # count = len(open(event_rtt_file, 'rU').readlines())
+            # if count <= 0:
+            continue
+        with open(event_rtt_file, 'r') as f:
+            rt_time = []
+            for line in f:
+                time = line.strip().split(' ')[-1]
+                rt_time.append(int(time))
+                # print time
+                # day = time[0:4] + time[5:7] + time[8:10]
+                # # print day
+                # # hms= time[9:17].replace(':', '')
+                # hm = time[11:19].replace('-', '')
+                # time = int(day + hm)
+
+        array = numpy.array(rt_time)
+        order = array.argsort()
+        ranks = order.argsort()
+        G = nx.Graph()
+
+        with open(event_rtt_file, 'r') as f:
+            for position, line in enumerate(f):
+                time = line.strip().split(' ')[-1]
+                if ST_TIME <= time <= ED_TIME:
+                    rtuid, uid = line.strip().split(' ')[0:2]
+                    G.add_edge(uid, rtuid, time=ranks[position])
+        if G.number_of_edges() <= 0:
+            print 0, 0.0
+            exit()
+        edges, colors = zip(*nx.get_edge_attributes(G, 'time').items())
+        # #计算节点的出度
+        degree = G.degree(G)
+        # closenesss = nx.closeness_centrality(G)
+        # betweenness = nx.betweenness_centrality(G)
+        print str(G.number_of_edges()) + " " + str(nx.average_clustering(G))
